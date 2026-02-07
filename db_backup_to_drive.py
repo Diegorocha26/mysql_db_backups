@@ -30,7 +30,7 @@ logging.basicConfig(
         logging.FileHandler('db_backup.log'),
         logging.StreamHandler()
     ]
-)
+)   
 logger = logging.getLogger(__name__)
 
 
@@ -199,7 +199,8 @@ class DatabaseBackupManager:
             file = self.drive_service.files().create(
                 body=file_metadata,
                 media_body=media,
-                fields='id, name, size'
+                fields='id, name, size',
+                supportsAllDrives=True
             ).execute()
             
             file_size_mb = int(file.get('size', 0)) / (1024 * 1024)
@@ -253,7 +254,9 @@ class DatabaseBackupManager:
             results = self.drive_service.files().list(
                 q=query,
                 fields='files(id, name, createdTime)',
-                orderBy='createdTime desc'
+                orderBy='createdTime desc',
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True
             ).execute()
             
             files = results.get('files', [])
@@ -262,7 +265,7 @@ class DatabaseBackupManager:
             if len(files) > self.max_backups_to_keep:
                 for old_file in files[self.max_backups_to_keep:]:
                     logger.info(f"Removing old Google Drive backup: {old_file['name']}")
-                    self.drive_service.files().delete(fileId=old_file['id']).execute()
+                    self.drive_service.files().delete(fileId=old_file['id'], supportsAllDrives=True).execute()
                     
         except HttpError as e:
             logger.error(f"Error cleaning up Google Drive backups: {e}")
